@@ -1,5 +1,5 @@
 # SentinelOps — Incident Tracker API
-
+[![CI](https://github.com/Sharazsony/sharaz-soni-sentinelops/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Sharazsony/sharaz-soni-sentinelops/actions/workflows/ci.yml)
 A FastAPI + PostgreSQL 16 backend that lets a platform team register services and
 track incidents against them, with filtering/pagination, an enforced status
 state machine, and a per-service MTTR (mean time to resolve) stats endpoint.
