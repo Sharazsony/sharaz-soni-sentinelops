@@ -36,9 +36,13 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql+psycopg://appuser:localdevpassword@localhost:5432/sentinelops
-      APP_ENV: ci
-      LOG_LEVEL: INFO
+        POSTGRES_USER: appuser
+        POSTGRES_PASSWORD: localdevpassword
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
+        POSTGRES_DB: sentinelops
+        APP_ENV: ci
+        LOG_LEVEL: INFO
 
     steps:
       - name: Checkout
