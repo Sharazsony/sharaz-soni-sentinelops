@@ -21,9 +21,33 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
-def _utcnow() -> datetime:
+def get_current_utc_time() -> datetime:
+    """Return the current time, timezone-aware, in UTC.
+
+    Used as the default value for created_at / opened_at columns so every
+    timestamp in the database is stamped by the server, never the client.
+    """
     return datetime.now(timezone.utc)
 
+
+def enum_values_only(enum_class) -> list[str]:
+    """Turn a Python Enum class into a plain list of its string values.
+
+    Example: SeverityEnum -> ["sev1", "sev2", "sev3"]
+
+    SQLAlchemy needs this so the database enum type stores "sev1" instead
+    of the Python name "SeverityEnum.sev1".
+    """
+    values = []
+    for member in enum_class:
+        values.append(member.value)
+    return values
+
+
+# ---------------------------------------------------------------------------
+# Plain Python enums. Because they inherit from `str`, a value like
+# StatusEnum.open behaves as the string "open" wherever needed.
+# ---------------------------------------------------------------------------
 
 class SeverityEnum(str, enum.Enum):
     sev1 = "sev1"
@@ -37,49 +61,73 @@ class StatusEnum(str, enum.Enum):
     resolved = "resolved"
 
 
+# ---------------------------------------------------------------------------
+# Table: services
+# ---------------------------------------------------------------------------
+
 class Service(Base):
     __tablename__ = "services"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False, unique=True)
     owner_team = Column(String(100), nullable=False)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=_utcnow)
-
-    incidents = relationship(
-        "Incident", back_populates="service", passive_deletes=False
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=get_current_utc_time,
     )
 
+    # One service can have many incidents.
+    incidents = relationship("Incident", back_populates="service")
+
+
+# ---------------------------------------------------------------------------
+# Table: incidents
+# ---------------------------------------------------------------------------
 
 class Incident(Base):
     __tablename__ = "incidents"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Foreign key pointing back to services.id.
+    # ondelete="RESTRICT" means: you cannot delete a service that still
+    # has incidents pointing at it.
     service_id = Column(
         Integer,
         ForeignKey("services.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
+
     title = Column(String(200), nullable=False)
+
     severity = Column(
         SAEnum(
             SeverityEnum,
             name="severity_enum",
-            values_callable=lambda enum_cls: [e.value for e in enum_cls],
+            values_callable=enum_values_only,
         ),
         nullable=False,
     )
+
     status = Column(
         SAEnum(
             StatusEnum,
             name="status_enum",
-            values_callable=lambda enum_cls: [e.value for e in enum_cls],
+            values_callable=enum_values_only,
         ),
         nullable=False,
         default=StatusEnum.open,
-        server_default=StatusEnum.open.value,
     )
-    opened_at = Column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+    opened_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=get_current_utc_time,
+    )
+
     resolved_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Lets you do incident.service.name instead of a manual query.
     service = relationship("Service", back_populates="incidents")
