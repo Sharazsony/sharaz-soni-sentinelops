@@ -99,7 +99,7 @@ main() {
   wait_for_api
 
   local svc1 svc2 svc3
-  svc1=$(create_service "checkout-api" "payments") || { echo "Duplicate seed data detected — aborting seed run." >&2; exit 1; }
+  svc1=$(create_service "checkout-api1" "payments") || { echo "Duplicate seed data detected — aborting seed run." >&2; exit 1; }
   svc2=$(create_service "payments-worker" "payments") || exit 1
   svc3=$(create_service "search-indexer" "search") || exit 1
 
